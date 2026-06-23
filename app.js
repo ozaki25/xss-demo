@@ -116,9 +116,8 @@ app.get('/', (req, res) => {
 
     <div class="warn-note">
       <span class="lock">⚠️</span>
-      <span>これは XSS（脆弱性）を体験する<strong>研修用のデモ</strong>です。
-      入力内容は攻撃で盗まれる可能性があります。<strong>本物の個人情報は絶対に入力せず</strong>、
-      架空のダミー値を入力してください。</span>
+      <span>これは<strong>研修用のデモアプリ</strong>です。
+      <strong>本物の個人情報は入力しないでください</strong>。架空のダミー値を入力してください。</span>
     </div>
 
     <button type="submit">チャットに参加する</button>
@@ -200,17 +199,33 @@ app.get('/chat', (req, res) => {
 <script>
   const MY_NAME = ${JSON.stringify(myName)};
   const log = document.getElementById('log');
+  var renderedCount = 0; // 既に描画済みのメッセージ数
+
+  function bubbleHtml(m) {
+    var mine = m.name === MY_NAME ? ' me' : '';
+    return '<div class="msg' + mine + '">' +
+             '<div class="who">' + m.name + '</div>' +
+             '<div class="bubble">' + m.body + '</div>' +
+           '</div>';
+  }
 
   function render(messages) {
-    // ⚠️ 脆弱ポイント：受け取ったメッセージを innerHTML でそのまま埋め込む
-    log.innerHTML = messages.map(function (m) {
-      var mine = m.name === MY_NAME ? ' me' : '';
-      return '<div class="msg' + mine + '">' +
-               '<div class="who">' + m.name + '</div>' +
-               '<div class="bubble">' + m.body + '</div>' +
-             '</div>';
-    }).join('');
-    log.scrollTop = log.scrollHeight;
+    // 投稿がリセットされた（件数が減った）場合は一旦まっさらにする
+    if (messages.length < renderedCount) {
+      log.innerHTML = '';
+      renderedCount = 0;
+    }
+    // 新着分だけを追記する。こうすると毎回 innerHTML を作り直さないので、
+    // 既存メッセージの <img onerror> が再描画のたびに再発火しなくなる
+    // （= 各メッセージの XSS は閲覧者ごとに1回だけ実行される）。
+    for (var i = renderedCount; i < messages.length; i++) {
+      // ⚠️ 脆弱ポイント：受け取ったメッセージを innerHTML でそのまま埋め込む
+      var div = document.createElement('div');
+      div.innerHTML = bubbleHtml(messages[i]);
+      log.appendChild(div.firstChild);
+    }
+    if (messages.length > renderedCount) log.scrollTop = log.scrollHeight;
+    renderedCount = messages.length;
   }
 
   async function poll() {
