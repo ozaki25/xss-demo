@@ -353,11 +353,13 @@ app.get('/stolen', async (req, res) => {
   .actions { display:flex; gap:10px; flex-wrap:wrap; margin-top: 4px; }
   button { background:#ff5252; color:#fff; border:none; padding:10px 18px; border-radius:8px; font-weight:700; cursor:pointer; }
   button.secondary { background:#444; }
+  button.primary { background:#1877f2; }
 </style></head>
 <body><div class="wrap">
   <h1>🕵️ 攻撃者が手に入れた情報</h1>
   <div class="count">${rows.length}<small> 件</small></div>
   <div class="actions">
+    <button type="button" class="primary" id="reloadBtn">🔄 再取得</button>
     <form method="POST" action="/reset"><button type="submit">盗まれた情報をリセット</button></form>
     <button type="button" class="secondary" id="clearChat">チャットの投稿を全消去（攻撃を止める）</button>
   </div>
@@ -368,10 +370,12 @@ app.get('/stolen', async (req, res) => {
   }
 </div>
 <script>
-  var t = setTimeout(function(){ location.reload(); }, 3000);
+  // 自動更新はしない（負荷が高いため）。「🔄 再取得」ボタンで手動更新する。
+  document.getElementById('reloadBtn').addEventListener('click', function () {
+    location.reload();
+  });
   document.getElementById('clearChat').addEventListener('click', async function () {
     if (!confirm('チャットの投稿をすべて消去します。攻撃メッセージも消え、情報窃取が止まります。よろしいですか？')) return;
-    clearTimeout(t);
     try { await fetch('/messages/reset', { method: 'POST' }); } catch (e) {}
     alert('チャットの投稿を消去しました。');
     location.reload();
