@@ -85,12 +85,12 @@ const STYLE = `
       font-size: 16px; font-weight: 700; cursor: pointer;
     }
     button:hover { background: #166fe5; }
-    .safe-note {
-      margin-top: 18px; background: #e7f3ff; border: 1px solid #bcdcff;
-      color: #1c4f8f; border-radius: 8px; padding: 12px 14px; font-size: 13px;
+    .warn-note {
+      margin-top: 18px; background: #fff4e5; border: 1px solid #ffd8a8;
+      color: #8a4b00; border-radius: 8px; padding: 12px 14px; font-size: 13px;
       display: flex; gap: 8px; align-items: flex-start;
     }
-    .safe-note .lock { font-size: 18px; line-height: 1.2; }
+    .warn-note .lock { font-size: 18px; line-height: 1.2; }
   </style>
 `;
 
@@ -112,12 +112,13 @@ app.get('/', (req, res) => {
 
     <label for="secret">あなただけの秘密のメモ</label>
     <input id="secret" name="secret" type="text"
-      placeholder="例：クレジットカード番号や暗証番号など、絶対に他人に知られたくない情報" required maxlength="120">
+      placeholder="例：ひみつのことば123（※本物の個人情報は入力しないでください）" required maxlength="120">
 
-    <div class="safe-note">
-      <span class="lock">🔒</span>
-      <span>入力した情報は<strong>あなたのブラウザにのみ保存</strong>され、
-      他の参加者には表示されません。安心してご利用ください。</span>
+    <div class="warn-note">
+      <span class="lock">⚠️</span>
+      <span>これは XSS（脆弱性）を体験する<strong>研修用のデモ</strong>です。
+      入力内容は攻撃で盗まれる可能性があります。<strong>本物の個人情報は絶対に入力せず</strong>、
+      架空のダミー値を入力してください。</span>
     </div>
 
     <button type="submit">チャットに参加する</button>
