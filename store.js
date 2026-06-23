@@ -34,6 +34,9 @@ function createMemoryStore() {
     async addMessage(name, body) {
       messages.push({ name, body });
     },
+    async resetMessages() {
+      messages.length = 0;
+    },
     async getStolen() {
       // 新しい順
       return stolen
@@ -42,6 +45,9 @@ function createMemoryStore() {
         .map((s) => ({ data: s.data, created_at: s.created_at }));
     },
     async addStolen(data) {
+      // 同じ内容は1件だけ（<img onerror> が再描画のたびに再発火して
+      // 同一 Cookie が無限に溜まるのを防ぐ）
+      if (stolen.some((s) => s.data === data)) return;
       stolen.push({ data, created_at: new Date().toISOString() });
     },
     async resetStolen() {
@@ -71,6 +77,10 @@ function createSupabaseStore() {
       const { error } = await db.from('messages').insert({ name, body });
       if (error) throw error;
     },
+    async resetMessages() {
+      const { error } = await db.from('messages').delete().gt('id', 0);
+      if (error) throw error;
+    },
     async getStolen() {
       const { data, error } = await db
         .from('stolen')
@@ -80,6 +90,15 @@ function createSupabaseStore() {
       return data || [];
     },
     async addStolen(data) {
+      // 同じ内容は1件だけ（<img onerror> が再描画のたびに再発火して
+      // 同一 Cookie が無限に溜まるのを防ぐ）。まず存在確認してから挿入する。
+      const { data: existing, error: selErr } = await db
+        .from('stolen')
+        .select('id')
+        .eq('data', data)
+        .limit(1);
+      if (selErr) throw selErr;
+      if (existing && existing.length) return;
       const { error } = await db.from('stolen').insert({ data });
       if (error) throw error;
     },

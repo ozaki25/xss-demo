@@ -160,7 +160,14 @@ app.get('/chat', (req, res) => {
     background: #1877f2; color: #fff; padding: 14px 18px;
     font-weight: 700; display:flex; justify-content:space-between; align-items:center;
   }
+  .chat-head .right { display:flex; align-items:center; gap:10px; }
   .chat-head small { font-weight: 400; opacity: .9; }
+  .chat-head .clear {
+    margin: 0; width: auto; padding: 6px 10px; font-size: 12px; font-weight: 700;
+    background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.5);
+    border-radius: 8px; color: #fff; cursor: pointer;
+  }
+  .chat-head .clear:hover { background: rgba(255,255,255,.32); }
   #log { height: 56vh; overflow-y: auto; padding: 16px; background: #fff; }
   .msg { margin-bottom: 14px; }
   .msg .who { font-size: 12px; color: #65676b; margin-bottom: 3px; }
@@ -178,7 +185,10 @@ app.get('/chat', (req, res) => {
 <body><div class="wrap"><div class="card chat-card">
   <div class="chat-head">
     <span>💬 みんなのチャット</span>
-    <small>あなた: ${escapeHtml(myName)}</small>
+    <span class="right">
+      <small>あなた: ${escapeHtml(myName)}</small>
+      <button type="button" id="clearBtn" class="clear">🗑 投稿を全消去</button>
+    </span>
   </div>
   <div id="log"></div>
   <form class="composer" id="composer">
@@ -223,6 +233,14 @@ app.get('/chat', (req, res) => {
     poll();
   });
 
+  document.getElementById('clearBtn').addEventListener('click', async function () {
+    if (!confirm('チャットの投稿をすべて消去します。よろしいですか？')) return;
+    try {
+      await fetch('/messages/reset', { method: 'POST' });
+    } catch (e) {}
+    poll();
+  });
+
   poll();
   setInterval(poll, 2000);
 </script>
@@ -245,6 +263,17 @@ app.post('/messages', async (req, res) => {
     const name = (req.body.name || '名無し').toString();
     const body = (req.body.body || '').toString();
     await store.addMessage(name, body);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e) });
+  }
+});
+
+// 投稿（チャット）を全消去する。
+// 攻撃メッセージを消すことで <img onerror> の再発火（情報窃取）も止まる。
+app.post('/messages/reset', async (req, res) => {
+  try {
+    await store.resetMessages();
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: String(e.message || e) });
@@ -305,19 +334,33 @@ app.get('/stolen', async (req, res) => {
   td.time { color:#888; white-space: nowrap; width: 1%; }
   td.data { font-family: monospace; word-break: break-all; color:#ffd54f; }
   .empty { color:#888; padding: 24px 0; }
+  .actions { display:flex; gap:10px; flex-wrap:wrap; margin-top: 4px; }
   button { background:#ff5252; color:#fff; border:none; padding:10px 18px; border-radius:8px; font-weight:700; cursor:pointer; }
+  button.secondary { background:#444; }
 </style></head>
 <body><div class="wrap">
   <h1>🕵️ 攻撃者が手に入れた情報</h1>
   <div class="count">${rows.length}<small> 件</small></div>
-  <form method="POST" action="/reset"><button type="submit">リセット</button></form>
+  <div class="actions">
+    <form method="POST" action="/reset"><button type="submit">盗まれた情報をリセット</button></form>
+    <button type="button" class="secondary" id="clearChat">チャットの投稿を全消去（攻撃を止める）</button>
+  </div>
   ${
     rows.length
       ? `<table><thead><tr><th>時刻</th><th>盗まれた Cookie（個人情報を含む）</th></tr></thead><tbody>${tableRows}</tbody></table>`
       : `<p class="empty">まだ何も盗まれていません。攻撃メッセージが投稿されるのを待っています…</p>`
   }
 </div>
-<script>setTimeout(function(){ location.reload(); }, 3000);</script>
+<script>
+  var t = setTimeout(function(){ location.reload(); }, 3000);
+  document.getElementById('clearChat').addEventListener('click', async function () {
+    if (!confirm('チャットの投稿をすべて消去します。攻撃メッセージも消え、情報窃取が止まります。よろしいですか？')) return;
+    clearTimeout(t);
+    try { await fetch('/messages/reset', { method: 'POST' }); } catch (e) {}
+    alert('チャットの投稿を消去しました。');
+    location.reload();
+  });
+</script>
 </body></html>`);
 });
 
