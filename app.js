@@ -21,6 +21,17 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// --- 検索エンジン・クローラーに拾わせない -----------------------------------
+//  研修用の一時公開を想定。全レスポンスに noindex を付け、robots.txt でも拒否する。
+app.use((req, res, next) => {
+  res.set('X-Robots-Tag', 'noindex, nofollow, noarchive, nosnippet');
+  next();
+});
+
+app.get('/robots.txt', (req, res) => {
+  res.type('text/plain').send('User-agent: *\nDisallow: /\n');
+});
+
 // --- 簡易 Cookie パーサ ------------------------------------------------------
 function parseCookies(req) {
   const header = req.headers.cookie || '';
@@ -90,6 +101,7 @@ app.get('/', (req, res) => {
   res.type('html').send(`<!doctype html>
 <html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
 <title>みんなのチャット — 参加する</title>${STYLE}</head>
 <body><div class="wrap"><div class="card">
   <h1>💬 みんなのチャット</h1>
@@ -140,6 +152,7 @@ app.get('/chat', (req, res) => {
   res.type('html').send(`<!doctype html>
 <html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
 <title>みんなのチャット</title>${STYLE}
 <style>
   .chat-card { padding: 0; overflow: hidden; }
@@ -278,6 +291,7 @@ app.get('/stolen', async (req, res) => {
   res.type('html').send(`<!doctype html>
 <html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
 <title>🕵️ 盗まれた情報（講師用）</title>
 <style>
   body { margin:0; font-family: -apple-system, "Noto Sans JP", sans-serif; background:#1a1a1a; color:#eee; }
