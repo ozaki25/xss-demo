@@ -328,7 +328,9 @@ app.get('/stolen', async (req, res) => {
 
   const tableRows = rows
     .map((r) => {
-      const t = new Date(r.created_at).toLocaleTimeString('ja-JP');
+      const t = new Date(r.created_at).toLocaleTimeString('ja-JP', {
+        timeZone: 'Asia/Tokyo',
+      });
       // 盗んだ Cookie は encodeURIComponent された状態（%E3%81...）なので、
       // 講師が読めるようにデコードしてから表示する（壊れていれば生のまま）。
       let display = r.data;
