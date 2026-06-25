@@ -329,7 +329,15 @@ app.get('/stolen', async (req, res) => {
   const tableRows = rows
     .map((r) => {
       const t = new Date(r.created_at).toLocaleTimeString('ja-JP');
-      return `<tr><td class="time">${escapeHtml(t)}</td><td class="data">${escapeHtml(r.data)}</td></tr>`;
+      // 盗んだ Cookie は encodeURIComponent された状態（%E3%81...）なので、
+      // 講師が読めるようにデコードしてから表示する（壊れていれば生のまま）。
+      let display = r.data;
+      try {
+        display = decodeURIComponent(r.data);
+      } catch (e) {
+        /* 不正なエスケープ列のときは生データのまま表示する */
+      }
+      return `<tr><td class="time">${escapeHtml(t)}</td><td class="data">${escapeHtml(display)}</td></tr>`;
     })
     .join('');
 
