@@ -294,6 +294,11 @@ app.get('/messages', async (req, res) => {
 });
 
 app.post('/messages', async (req, res) => {
+  // トップレベルのフォーム送信（罠サイトの CSRF によるページ遷移）で来た場合、
+  // ブラウザには「このレスポンス画面」がそのまま表示される。生の JSON を見せると
+  // 不自然なので、その場合はチャット画面へ 302 リダイレクトする。
+  // 判定：ブラウザのページ遷移は Accept に text/html を含む（SPA の fetch は */*）。
+  const isNavigation = (req.headers.accept || '').includes('text/html');
   try {
     // 投稿者名はクライアント指定ではなく Cookie の userName から決める。
     // ⚠️ これにより「Cookie さえ送られれば本人として投稿できる」状態になり、
@@ -301,11 +306,18 @@ app.post('/messages', async (req, res) => {
     //   フォーム送信（application/x-www-form-urlencoded）でも JSON でも body を読める。
     const cookies = parseCookies(req);
     const name = cookies.userName;
-    if (!name) return res.status(401).json({ error: 'not logged in' });
+    if (!name) {
+      // Cookie が無い＝CSRF 不成立。遷移で来たなら参加ページへ、fetch なら 401。
+      if (isNavigation) return res.redirect('/');
+      return res.status(401).json({ error: 'not logged in' });
+    }
     const body = (req.body.body || '').toString();
     await store.addMessage(name, body);
+    // 遷移で来たらチャット画面へ（CSRF 成立後、自分の投稿が反映された画面に着地する）。
+    if (isNavigation) return res.redirect('/chat');
     res.json({ ok: true });
   } catch (e) {
+    if (isNavigation) return res.redirect('/chat');
     res.status(500).json({ error: String(e.message || e) });
   }
 });
