@@ -212,9 +212,11 @@ app.get('/chat', (req, res) => {
     var time = '';
     if (m.created_at) {
       try {
-        // 投稿時刻は日本時間（JST）で表示する
-        time = new Date(m.created_at).toLocaleTimeString('ja-JP', {
-          timeZone: 'Asia/Tokyo', hour: '2-digit', minute: '2-digit'
+        // 投稿日時は日本時間（JST）で「M/D HH:MM」形式で表示する
+        time = new Date(m.created_at).toLocaleString('ja-JP', {
+          timeZone: 'Asia/Tokyo',
+          month: 'numeric', day: 'numeric',
+          hour: '2-digit', minute: '2-digit'
         });
       } catch (e) {}
     }
