@@ -132,10 +132,15 @@ app.get('/', (req, res) => {
 app.post('/enter', (req, res) => {
   const name = (req.body.name || '名無し').toString();
   const secret = (req.body.secret || '').toString();
-  const opts = 'Path=/; Max-Age=86400; SameSite=Lax';
+  const laxOpts = 'Path=/; Max-Age=86400; SameSite=Lax';
+  // ⚠️ CSRF デモ用の「実装ミス」再現：userName だけ SameSite=None にしている。
+  //   None にすると別ドメイン（罠サイト）からのクロスサイト POST でもこの Cookie が
+  //   送られてしまい、なりすまし投稿（CSRF）が成立する。本来 Lax であれば
+  //   cross-site の POST には付かず防げる。None は Secure（HTTPS）必須。
+  const noneOpts = 'Path=/; Max-Age=86400; SameSite=None; Secure';
   res.setHeader('Set-Cookie', [
-    `userName=${encodeURIComponent(name)}; ${opts}`,
-    `userSecret=${encodeURIComponent(secret)}; ${opts}`,
+    `userName=${encodeURIComponent(name)}; ${noneOpts}`,
+    `userSecret=${encodeURIComponent(secret)}; ${laxOpts}`,
   ]);
   res.redirect('/chat');
 });
@@ -241,10 +246,11 @@ app.get('/chat', (req, res) => {
     const body = input.value;
     if (!body) return;
     input.value = '';
+    // 投稿者名はサーバーが Cookie（userName）から決めるので body だけ送る。
     await fetch('/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: MY_NAME, body: body })
+      body: JSON.stringify({ body: body })
     });
     poll();
   });
@@ -276,7 +282,13 @@ app.get('/messages', async (req, res) => {
 
 app.post('/messages', async (req, res) => {
   try {
-    const name = (req.body.name || '名無し').toString();
+    // 投稿者名はクライアント指定ではなく Cookie の userName から決める。
+    // ⚠️ これにより「Cookie さえ送られれば本人として投稿できる」状態になり、
+    //   別ドメインの罠サイトからの自動 POST（CSRF）でなりすまし投稿が成立する。
+    //   フォーム送信（application/x-www-form-urlencoded）でも JSON でも body を読める。
+    const cookies = parseCookies(req);
+    const name = cookies.userName;
+    if (!name) return res.status(401).json({ error: 'not logged in' });
     const body = (req.body.body || '').toString();
     await store.addMessage(name, body);
     res.json({ ok: true });
