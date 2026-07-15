@@ -180,6 +180,7 @@ app.get('/chat', (req, res) => {
     display: inline-block; background: #e4e6eb; padding: 9px 13px;
     border-radius: 14px; font-size: 15px; max-width: 100%; word-break: break-word;
   }
+  .msg .time { font-size: 11px; color: #8a8d91; margin-top: 3px; }
   .msg.me .who { text-align: right; }
   .msg.me { text-align: right; }
   .msg.me .bubble { background: #1877f2; color: #fff; }
@@ -208,9 +209,19 @@ app.get('/chat', (req, res) => {
 
   function bubbleHtml(m) {
     var mine = m.name === MY_NAME ? ' me' : '';
+    var time = '';
+    if (m.created_at) {
+      try {
+        // 投稿時刻は日本時間（JST）で表示する
+        time = new Date(m.created_at).toLocaleTimeString('ja-JP', {
+          timeZone: 'Asia/Tokyo', hour: '2-digit', minute: '2-digit'
+        });
+      } catch (e) {}
+    }
     return '<div class="msg' + mine + '">' +
              '<div class="who">' + m.name + '</div>' +
              '<div class="bubble">' + m.body + '</div>' +
+             (time ? '<div class="time">' + time + '</div>' : '') +
            '</div>';
   }
 

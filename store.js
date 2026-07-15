@@ -29,10 +29,14 @@ function createMemoryStore() {
   return {
     mode: 'memory',
     async getMessages() {
-      return messages.map((m) => ({ name: m.name, body: m.body }));
+      return messages.map((m) => ({
+        name: m.name,
+        body: m.body,
+        created_at: m.created_at,
+      }));
     },
     async addMessage(name, body) {
-      messages.push({ name, body });
+      messages.push({ name, body, created_at: new Date().toISOString() });
     },
     async resetMessages() {
       messages.length = 0;
@@ -68,7 +72,7 @@ function createSupabaseStore() {
     async getMessages() {
       const { data, error } = await db
         .from('messages')
-        .select('name, body')
+        .select('name, body, created_at')
         .order('id', { ascending: true });
       if (error) throw error;
       return data || [];
